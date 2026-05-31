@@ -1,0 +1,3 @@
+ng new employee-management --routing --style=scss
+cd employee-management
+ng add @angular/material
