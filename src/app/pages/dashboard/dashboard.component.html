@@ -1,0 +1,194 @@
+<div class="df-host">
+
+  <header class="df-header">
+    <h1 class="df-title">Employee registration</h1>
+  </header>
+
+  <!-- ── Section: Basic information ──────────────────────── -->
+  <section class="df-section">
+    <h2 class="df-section-title">Basic information</h2>
+    <form [formGroup]="form0" novalidate>
+      <div class="df-grid df-cols-3">
+
+        <!-- Employee ID -->
+        <div class="df-field">
+          <mat-form-field appearance="outline" class="df-form-field">
+            <mat-label>Employee ID</mat-label>
+            <input matInput type="text" placeholder="EMP-001" formControlName="empId">
+            <mat-error>{{ getErrorMessage(form0.get('empId') | as: FormControl) }}</mat-error>
+          </mat-form-field>
+        </div>
+
+        <!-- Full name -->
+        <div class="df-field df-span-2">
+          <mat-form-field appearance="outline" class="df-form-field">
+            <mat-label>Full name</mat-label>
+            <input matInput type="text" placeholder="" formControlName="fullName">
+            <mat-error>{{ getErrorMessage(form0.get('fullName') | as: FormControl) }}</mat-error>
+          </mat-form-field>
+        </div>
+
+        <!-- Work email -->
+        <div class="df-field">
+          <mat-form-field appearance="outline" class="df-form-field">
+            <mat-label>Work email</mat-label>
+            <input matInput type="text" placeholder="" formControlName="email">
+            <mat-error>{{ getErrorMessage(form0.get('email') | as: FormControl) }}</mat-error>
+          </mat-form-field>
+        </div>
+
+        <!-- Phone -->
+        <div class="df-field">
+          <mat-form-field appearance="outline" class="df-form-field">
+            <mat-label>Phone</mat-label>
+            <input matInput type="text" placeholder="" formControlName="phone">
+            <mat-error>{{ getErrorMessage(form0.get('phone') | as: FormControl) }}</mat-error>
+          </mat-form-field>
+        </div>
+
+        <!-- Date of birth -->
+        <div class="df-field">
+          <mat-form-field appearance="outline" class="df-form-field">
+            <mat-label>Date of birth</mat-label>
+            <input matInput [matDatepicker]="dp_dob" formControlName="dob">
+            <mat-datepicker-toggle matIconSuffix [for]="dp_dob"></mat-datepicker-toggle>
+            <mat-datepicker #dp_dob></mat-datepicker>
+            <mat-error>{{ getErrorMessage(form0.get('dob') | as: FormControl) }}</mat-error>
+          </mat-form-field>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <!-- ── Section: Role &amp; department ──────────────────────── -->
+  <section class="df-section">
+    <h2 class="df-section-title">Role &amp; department</h2>
+    <form [formGroup]="form1" novalidate>
+      <div class="df-grid df-cols-4">
+
+        <!-- Department -->
+        <div class="df-field df-span-2">
+          <mat-form-field appearance="outline" class="df-form-field">
+            <mat-label>Department</mat-label>
+            <mat-select formControlName="dept">
+              <mat-option value="Engineering">Engineering</mat-option>
+              <mat-option value="Marketing">Marketing</mat-option>
+              <mat-option value="Sales">Sales</mat-option>
+              <mat-option value="HR">HR</mat-option>
+            </mat-select>
+            <mat-error>{{ getErrorMessage(form1.get('dept') | as: FormControl) }}</mat-error>
+          </mat-form-field>
+        </div>
+
+        <!-- Role -->
+        <div class="df-field">
+          <mat-form-field appearance="outline" class="df-form-field">
+            <mat-label>Role</mat-label>
+            <mat-select formControlName="role">
+              <mat-option value="Junior">Junior</mat-option>
+              <mat-option value="Mid">Mid</mat-option>
+              <mat-option value="Senior">Senior</mat-option>
+              <mat-option value="Lead">Lead</mat-option>
+            </mat-select>
+            <mat-error>{{ getErrorMessage(form1.get('role') | as: FormControl) }}</mat-error>
+          </mat-form-field>
+        </div>
+
+        <!-- Office -->
+        <div class="df-field">
+          <mat-form-field appearance="outline" class="df-form-field">
+            <mat-label>Office</mat-label>
+            <mat-select formControlName="office">
+              <mat-option value="Mumbai">Mumbai</mat-option>
+              <mat-option value="Delhi">Delhi</mat-option>
+              <mat-option value="Bangalore">Bangalore</mat-option>
+              <mat-option value="Remote">Remote</mat-option>
+            </mat-select>
+            <mat-error>{{ getErrorMessage(form1.get('office') | as: FormControl) }}</mat-error>
+          </mat-form-field>
+        </div>
+
+        <!-- Employment type -->
+        <div class="df-field df-span-2">
+          <div class="df-field-block">
+            <label class="df-field-lbl">Employment type</label>
+            <mat-radio-group formControlName="employment" class="df-radio-group">
+              <mat-radio-button value="Full-time">Full-time</mat-radio-button>
+              <mat-radio-button value="Part-time">Part-time</mat-radio-button>
+              <mat-radio-button value="Contract">Contract</mat-radio-button>
+            </mat-radio-group>
+          </div>
+        </div>
+
+        <!-- Remote eligible -->
+        <div class="df-field">
+          <div class="df-field-block df-toggle-row">
+            <label class="df-field-lbl">Remote eligible</label>
+            <mat-slide-toggle formControlName="remote"></mat-slide-toggle>
+          </div>
+        </div>
+
+        <!-- Joining date -->
+        <div class="df-field">
+          <mat-form-field appearance="outline" class="df-form-field">
+            <mat-label>Joining date</mat-label>
+            <input matInput [matDatepicker]="dp_joinDate" formControlName="joinDate">
+            <mat-datepicker-toggle matIconSuffix [for]="dp_joinDate"></mat-datepicker-toggle>
+            <mat-datepicker #dp_joinDate></mat-datepicker>
+            <mat-error>{{ getErrorMessage(form1.get('joinDate') | as: FormControl) }}</mat-error>
+          </mat-form-field>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <!-- ── Section: Notes ──────────────────────── -->
+  <section class="df-section">
+    <h2 class="df-section-title">Notes</h2>
+    <form [formGroup]="form2" novalidate>
+      <div class="df-grid df-cols-1">
+
+        <!-- Skills -->
+        <div class="df-field">
+          <div class="df-field-block">
+            <label class="df-field-lbl">Skills</label>
+            <mat-chip-listbox formControlName="skills" multiple class="df-chips">
+              <mat-chip-option value="Angular">Angular</mat-chip-option>
+              <mat-chip-option value="React">React</mat-chip-option>
+              <mat-chip-option value="Node.js">Node.js</mat-chip-option>
+              <mat-chip-option value="Python">Python</mat-chip-option>
+              <mat-chip-option value="Java">Java</mat-chip-option>
+            </mat-chip-listbox>
+          </div>
+        </div>
+
+        <!-- Additional notes -->
+        <div class="df-field">
+          <mat-form-field appearance="outline" class="df-form-field">
+            <mat-label>Additional notes</mat-label>
+            <textarea matInput rows="4" placeholder="" formControlName="notes"></textarea>
+            <mat-error>{{ getErrorMessage(form2.get('notes') | as: FormControl) }}</mat-error>
+          </mat-form-field>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <footer class="df-foot df-foot--single">
+    <button mat-flat-button color="primary" type="button" (click)="submit()">
+      <mat-icon>check</mat-icon> Submit form
+    </button>
+  </footer>
+
+
+  <!-- ── Success state ──────────────────────────────────────── -->
+  <div class="df-success" *ngIf="isSubmitted()" role="alert">
+    <mat-icon class="df-success-icon">check_circle</mat-icon>
+    <h2>Employee registration submitted!</h2>
+    <pre class="df-payload">{{ submitPayload() | json }}</pre>
+    <button mat-stroked-button (click)="reset()">
+      <mat-icon>refresh</mat-icon> Fill again
+    </button>
+  </div>
+
+</div>

@@ -1,0 +1,835 @@
+
+<h2 class="sr-only">Angular dynamic form code generator — paste JSON schema to get TypeScript, HTML and SCSS ready to copy into your component</h2>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.wrap{display:grid;grid-template-columns:1fr 1fr;gap:0;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;min-height:560px}
+.left{background:var(--color-background-secondary);display:flex;flex-direction:column;border-right:0.5px solid var(--color-border-tertiary)}
+.lh{padding:14px 16px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.lh-title{font-size:11px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+#jsonIn{width:100%;flex:1;min-height:300px;font-family:var(--font-mono);font-size:10.5px;padding:10px;border:0.5px solid var(--color-border-secondary);border-radius:8px;background:var(--color-background-primary);color:var(--color-text-primary);resize:vertical;line-height:1.6}
+#jsonIn:focus{outline:none;border-color:#534AB7}
+.lf{padding:12px 16px;display:flex;flex-direction:column;gap:7px}
+.gen-btn{padding:9px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;border:none;background:#534AB7;color:#fff;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .15s}
+.gen-btn:hover{background:#3C3489}
+.sample-row{display:flex;gap:6px}
+.s-btn{flex:1;padding:7px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:500;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-secondary);transition:all .15s;text-align:center}
+.s-btn:hover{border-color:#534AB7;color:#534AB7}
+.err{padding:7px 10px;background:var(--color-background-danger);border:0.5px solid var(--color-border-danger);border-radius:8px;color:var(--color-text-danger);font-size:11px;display:none}
+.right{background:var(--color-background-primary);display:flex;flex-direction:column}
+.rh{display:flex;align-items:center;gap:0;border-bottom:0.5px solid var(--color-border-tertiary)}
+.rtab{padding:10px 16px;font-size:12px;font-weight:500;color:var(--color-text-secondary);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none}
+.rtab:hover{color:var(--color-text-primary)}
+.rtab.on{color:#534AB7;border-bottom-color:#534AB7}
+.rbody{flex:1;overflow:auto;padding:14px;position:relative}
+.empty-msg{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;text-align:center;padding:40px;color:var(--color-text-secondary)}
+.empty-msg i{font-size:32px;color:var(--color-border-secondary)}
+.empty-msg p{font-size:13px}
+.code-block{position:relative}
+.cp{position:absolute;top:0;right:0;padding:5px 10px;font-size:11px;border:0.5px solid var(--color-border-secondary);border-radius:0 8px 0 8px;cursor:pointer;background:var(--color-background-primary);color:var(--color-text-secondary);z-index:2;display:flex;align-items:center;gap:4px}
+.cp:hover{background:var(--color-background-secondary)}
+pre{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:8px;padding:12px 14px;font-family:var(--font-mono);font-size:10.5px;line-height:1.7;overflow:auto;white-space:pre;color:var(--color-text-primary);margin:0}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:500;background:#EEEDFE;color:#3C3489;margin-left:6px}
+</style>
+
+<div class="wrap">
+  <div class="left">
+    <div class="lh">
+      <div class="lh-title">Paste your JSON schema</div>
+      <textarea id="jsonIn" spellcheck="false" placeholder='{ "formTitle": "...", "componentName": "my-form", "layout": "stepper|tabs|single", "steps": [ { "stepTitle": "...", "columns": 2, "fields": [ { "type": "input", "controlName": "name", "label": "Name", "validators": [{"type":"required"}], "colSpan": 1 } ] } ] }'></textarea>
+    </div>
+    <div class="lf">
+      <button class="gen-btn" onclick="generate()">
+        <i class="ti ti-code" aria-hidden="true"></i> Generate code
+      </button>
+      <div class="sample-row">
+        <button class="s-btn" onclick="loadSample('stepper')">Stepper sample</button>
+        <button class="s-btn" onclick="loadSample('single')">Single page</button>
+        <button class="s-btn" onclick="loadSample('tabs')">Tabs sample</button>
+      </div>
+      <div class="err" id="errBox"></div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="rh">
+      <button class="rtab on" onclick="switchTab('ts',this)">component.ts</button>
+      <button class="rtab" onclick="switchTab('html',this)">component.html</button>
+      <button class="rtab" onclick="switchTab('scss',this)">component.scss</button>
+    </div>
+    <div class="rbody" id="rbody">
+      <div class="empty-msg">
+        <i class="ti ti-code" aria-hidden="true"></i>
+        <p>Paste a JSON schema and click <strong>Generate code</strong></p>
+        <p style="font-size:11px;margin-top:4px;max-width:200px;line-height:1.6">Three files will be generated — copy each into your Angular component</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let schema=null, activeTab='ts';
+
+const samples={
+stepper:{
+  formTitle:"Employee onboarding",
+  componentName:"employee-onboarding",
+  layout:"stepper",
+  steps:[
+    {stepTitle:"Personal info",stepDescription:"Basic details",columns:2,fields:[
+      {type:"input",controlName:"firstName",label:"First name",placeholder:"John",validators:[{type:"required"}],colSpan:1},
+      {type:"input",controlName:"lastName",label:"Last name",placeholder:"Doe",validators:[{type:"required"}],colSpan:1},
+      {type:"input",controlName:"email",label:"Email",placeholder:"john@company.com",inputType:"email",validators:[{type:"required"},{type:"email"}],colSpan:2},
+      {type:"select",controlName:"country",label:"Country",options:["India","USA","UK","Canada"],colSpan:1},
+      {type:"input",controlName:"state",label:"State",placeholder:"Maharashtra",colSpan:1,visibleWhen:{field:"country",value:"India"},hint:"Shown when country is India"}
+    ]},
+    {stepTitle:"Company",stepDescription:"Organisation details",columns:2,fields:[
+      {type:"input",controlName:"company",label:"Company name",validators:[{type:"required"}],colSpan:2},
+      {type:"select",controlName:"industry",label:"Industry",options:["Technology","Finance","Healthcare","Retail"],colSpan:1},
+      {type:"radio",controlName:"size",label:"Company size",options:["1-10","11-50","51-200","200+"],colSpan:1},
+      {type:"textarea",controlName:"bio",label:"Description",placeholder:"What does your company do?",colSpan:2}
+    ]},
+    {stepTitle:"Preferences",columns:1,fields:[
+      {type:"chips",controlName:"interests",label:"Areas of interest",options:["Cloud","AI/ML","Security","DevOps","Analytics"],colSpan:1},
+      {type:"toggle",controlName:"twoFactor",label:"Enable two-factor auth",colSpan:1},
+      {type:"datepicker",controlName:"startDate",label:"Start date",colSpan:1}
+    ]},
+    {stepTitle:"Review & submit",fields:[]}
+  ]
+},
+single:{
+  formTitle:"Employee registration",
+  componentName:"employee-registration",
+  layout:"single",
+  sections:[
+    {sectionTitle:"Basic information",columns:3,fields:[
+      {type:"input",controlName:"empId",label:"Employee ID",placeholder:"EMP-001",colSpan:1},
+      {type:"input",controlName:"fullName",label:"Full name",validators:[{type:"required"}],colSpan:2},
+      {type:"input",controlName:"email",label:"Work email",validators:[{type:"required"},{type:"email"}],colSpan:1},
+      {type:"input",controlName:"phone",label:"Phone",colSpan:1},
+      {type:"datepicker",controlName:"dob",label:"Date of birth",colSpan:1}
+    ]},
+    {sectionTitle:"Role & department",columns:4,fields:[
+      {type:"select",controlName:"dept",label:"Department",options:["Engineering","Marketing","Sales","HR"],colSpan:2},
+      {type:"select",controlName:"role",label:"Role",options:["Junior","Mid","Senior","Lead"],colSpan:1},
+      {type:"select",controlName:"office",label:"Office",options:["Mumbai","Delhi","Bangalore","Remote"],colSpan:1},
+      {type:"radio",controlName:"employment",label:"Employment type",options:["Full-time","Part-time","Contract"],colSpan:2},
+      {type:"toggle",controlName:"remote",label:"Remote eligible",colSpan:1},
+      {type:"datepicker",controlName:"joinDate",label:"Joining date",validators:[{type:"required"}],colSpan:1}
+    ]},
+    {sectionTitle:"Notes",columns:1,fields:[
+      {type:"chips",controlName:"skills",label:"Skills",options:["Angular","React","Node.js","Python","Java"],colSpan:1},
+      {type:"textarea",controlName:"notes",label:"Additional notes",colSpan:1}
+    ]}
+  ]
+},
+tabs:{
+  formTitle:"Contact us",
+  componentName:"contact-us",
+  layout:"tabs",
+  steps:[
+    {stepTitle:"Your details",columns:2,fields:[
+      {type:"input",controlName:"name",label:"Full name",validators:[{type:"required"}],colSpan:1},
+      {type:"input",controlName:"email",label:"Email",inputType:"email",validators:[{type:"required"},{type:"email"}],colSpan:1},
+      {type:"select",controlName:"enquiry",label:"Enquiry type",options:["Sales","Support","Billing","Other"],colSpan:2}
+    ]},
+    {stepTitle:"Message",columns:1,fields:[
+      {type:"input",controlName:"subject",label:"Subject",validators:[{type:"required"}],colSpan:1},
+      {type:"textarea",controlName:"message",label:"Message",validators:[{type:"required"},{type:"minLength",value:20}],hint:"Minimum 20 characters",colSpan:1},
+      {type:"file",controlName:"attachment",label:"Attachment (optional)",colSpan:1}
+    ]}
+  ]
+}
+};
+
+function loadSample(k){
+  document.getElementById('jsonIn').value=JSON.stringify(samples[k],null,2);
+}
+
+function generate(){
+  document.getElementById('errBox').style.display='none';
+  const raw=document.getElementById('jsonIn').value.trim();
+  if(!raw){showErr('Paste a JSON schema first.');return;}
+  try{
+    schema=JSON.parse(raw);
+    const hasSrc=(schema.steps||schema.sections);
+    if(!hasSrc) throw new Error('Schema must have "steps" or "sections" array.');
+    renderTab();
+  }catch(e){showErr('JSON error: '+e.message);}
+}
+
+function switchTab(t,btn){
+  activeTab=t;
+  document.querySelectorAll('.rtab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  if(schema) renderTab();
+}
+
+function renderTab(){
+  const body=document.getElementById('rbody');
+  let code='';
+  if(activeTab==='ts') code=genTS();
+  else if(activeTab==='html') code=genHTML();
+  else code=genSCSS();
+  body.innerHTML=`<div class="code-block"><button class="cp" onclick="doCopy(this)"><i class="ti ti-copy" aria-hidden="true"></i> Copy</button><pre>${esc(code)}</pre></div>`;
+}
+
+function doCopy(btn){
+  const txt=btn.parentElement.querySelector('pre').textContent;
+  navigator.clipboard.writeText(txt).then(()=>{
+    btn.innerHTML='<i class="ti ti-check"></i> Copied!';
+    setTimeout(()=>{btn.innerHTML='<i class="ti ti-copy"></i> Copy';},1800);
+  });
+}
+
+function showErr(msg){const e=document.getElementById('errBox');e.textContent=msg;e.style.display='block';}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function getSections(){return schema.sections||schema.steps||[];}
+function getLayout(){return schema.layout||'stepper';}
+
+function genTS(){
+  const sections=getSections();
+  const layout=getLayout();
+  const componentName=toPascal(schema.componentName||schema.formTitle||'DynamicForm');
+  const selector=toKebab(schema.componentName||schema.formTitle||'dynamic-form');
+
+  const allFields=sections.flatMap(s=>s.fields||[]);
+  const hasRequired=allFields.some(f=>f.validators&&f.validators.some(v=>v.type==='required'));
+  const hasEmail=allFields.some(f=>f.validators&&f.validators.some(v=>v.type==='email'));
+  const hasMinLen=allFields.some(f=>f.validators&&f.validators.some(v=>v.type==='minLength'));
+  const hasMaxLen=allFields.some(f=>f.validators&&f.validators.some(v=>v.type==='maxLength'));
+  const hasCheckbox=allFields.some(f=>f.type==='checkbox');
+  const hasDate=allFields.some(f=>f.type==='datepicker');
+  const hasToggle=allFields.some(f=>f.type==='toggle');
+  const hasChips=allFields.some(f=>f.type==='chips');
+  const hasFile=allFields.some(f=>f.type==='file');
+  const hasAuto=allFields.some(f=>f.type==='autocomplete');
+
+  const validatorImports=['Validators'];
+  if(hasCheckbox) validatorImports.push('FormArray');
+
+  let imports=`import { Component, OnInit, signal, computed, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, FormGroup, FormControl, ${validatorImports.join(', ')} } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSelectModule } from '@angular/material/select';
+import { MatRadioModule } from '@angular/material/radio';`;
+  if(hasCheckbox) imports+=`\nimport { MatCheckboxModule } from '@angular/material/checkbox';`;
+  if(hasDate) imports+=`\nimport { MatDatepickerModule } from '@angular/material/datepicker';\nimport { MatNativeDateModule } from '@angular/material/core';`;
+  if(hasToggle) imports+=`\nimport { MatSlideToggleModule } from '@angular/material/slide-toggle';`;
+  if(hasChips) imports+=`\nimport { MatChipsModule } from '@angular/material/chips';`;
+  if(hasAuto) imports+=`\nimport { MatAutocompleteModule } from '@angular/material/autocomplete';`;
+  if(layout==='stepper') imports+=`\nimport { MatStepperModule } from '@angular/material/stepper';`;
+  if(layout==='tabs') imports+=`\nimport { MatTabsModule } from '@angular/material/tabs';`;
+  imports+=`\nimport { MatProgressBarModule } from '@angular/material/progress-bar';`;
+  imports+=`\nimport { AsPipe } from '../../shared/helper/as.pipe';`;
+
+  const importList=['CommonModule','ReactiveFormsModule','MatFormFieldModule','MatInputModule','MatButtonModule','MatIconModule','MatSelectModule','MatRadioModule'];
+  if(hasCheckbox) importList.push('MatCheckboxModule');
+  if(hasDate) importList.push('MatDatepickerModule','MatNativeDateModule');
+  if(hasToggle) importList.push('MatSlideToggleModule');
+  if(hasChips) importList.push('MatChipsModule');
+  if(hasAuto) importList.push('MatAutocompleteModule');
+  if(layout==='stepper') importList.push('MatStepperModule');
+  if(layout==='tabs') importList.push('MatTabsModule');
+  importList.push('MatProgressBarModule');
+  importList.push('AsPipe');
+
+  let forms='';
+  sections.forEach((sec,i)=>{
+    const title=sec.stepTitle||sec.sectionTitle||`section${i}`;
+    forms+=`\n    // ── ${title}\n    this.form${i} = this.fb.group({\n`;
+    (sec.fields||[]).forEach(f=>{
+      if(f.type==='checkbox'){
+        forms+=`      ${f.controlName}: this.fb.array([${(f.options||[]).map(()=>'this.fb.control(false)').join(', ')}]),\n`;
+      } else {
+        const validators=buildValidatorStr(f.validators||[]);
+        forms+=`      ${f.controlName}: [${f.value!==undefined?JSON.stringify(f.value):"''"}, [${validators}]],\n`;
+      }
+    });
+    forms+=`    });\n`;
+  });
+
+  let formProps=sections.map((_,i)=>`  form${i}!: FormGroup;`).join('\n');
+  let formInits=sections.map((_,i)=>`  this.form${i}.valueChanges.subscribe(() => this.cdr.markForCheck());`).join('\n  ');
+
+  let visibilityMethods='';
+  const visFields=allFields.filter(f=>f.visibleWhen);
+  visFields.forEach(f=>{
+    const idx=sections.findIndex(s=>(s.fields||[]).some(fi=>fi.controlName===f.controlName));
+    visibilityMethods+=`\n  isVisible_${f.controlName}(): boolean {\n    return this.form${idx}.get('${f.visibleWhen.field}')?.value ${f.visibleWhen.operator==='!='?'!==':'==='} '${f.visibleWhen.value}';\n  }\n`;
+  });
+
+  let cbMethods='';
+  if(hasCheckbox){
+    allFields.filter(f=>f.type==='checkbox').forEach(f=>{
+      const idx=sections.findIndex(s=>(s.fields||[]).some(fi=>fi.controlName===f.controlName));
+      cbMethods+=`\n  get ${f.controlName}Array(): FormArray {\n    return this.form${idx}.get('${f.controlName}') as FormArray;\n  }\n`;
+    });
+  }
+
+  let summaryMethod='';
+  if(sections.some(s=>!s.fields||s.fields.length===0)){
+    summaryMethod=`\n  getSummaryValue(formIndex: number, controlName: string): string {\n    const forms = [${sections.map((_,i)=>`this.form${i}`).join(', ')}];\n    const v = forms[formIndex]?.get(controlName)?.value;\n    if (v === null || v === undefined || v === '') return '—';\n    if (Array.isArray(v)) return v.filter(Boolean).join(', ') || '—';\n    if (v instanceof Date) return v.toLocaleDateString();\n    return String(v);\n  }\n`;
+  }
+
+  const stepperNav = layout==='stepper' ? `\n  currentStep = signal(0);\n  totalSteps = ${sections.length};\n  progress = computed(() => Math.round(((this.currentStep() + 1) / this.totalSteps) * 100));\n\n  next(): void { if (this.currentStep() < this.totalSteps - 1) this.currentStep.update(s => s + 1); }\n  back(): void { if (this.currentStep() > 0) this.currentStep.update(s => s - 1); }\n  goTo(i: number): void { this.currentStep.set(i); }\n` : layout==='tabs' ? `\n  currentTab = signal(0);\n  goTo(i: number): void { this.currentTab.set(i); }\n  next(): void { if (this.currentTab() < ${sections.length} - 1) this.currentTab.update(t => t + 1); }\n  back(): void { if (this.currentTab() > 0) this.currentTab.update(t => t - 1); }\n` : '';
+
+  return `${imports}
+
+@Component({
+  selector: 'app-${selector}',
+  standalone: true,
+  imports: [${importList.join(', ')}],
+  templateUrl: './${selector}.component.html',
+  styleUrls: ['./${selector}.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class ${componentName}Component implements OnInit {
+
+  readonly FormControl = FormControl;
+${formProps}
+  isSubmitted = signal(false);
+  submitPayload = signal<Record<string, unknown>>({});
+${stepperNav}
+  constructor(private fb: FormBuilder, private cdr: ChangeDetectorRef) {}
+
+  ngOnInit(): void {
+${forms}
+    ${formInits}
+  }
+${visibilityMethods}${cbMethods}${summaryMethod}
+  getErrorMessage(control: FormControl): string {
+    if (!control.errors || !control.touched) return '';
+    if (control.errors['required']) return 'This field is required.';
+    if (control.errors['email']) return 'Enter a valid email address.';
+    if (control.errors['minlength']) return \`Minimum \${control.errors['minlength'].requiredLength} characters.\`;
+    if (control.errors['maxlength']) return \`Maximum \${control.errors['maxlength'].requiredLength} characters.\`;
+    return 'Invalid value.';
+  }
+
+  submit(): void {
+    const allForms = [${sections.map((_,i)=>`this.form${i}`).join(', ')}];
+    allForms.forEach(f => f.markAllAsTouched());
+    if (allForms.every(f => f.valid)) {
+      const payload: Record<string, unknown> = {};
+      ${sections.map((s,i)=>{const key=toCamel(s.stepTitle||s.sectionTitle||`tab${i+1}`);return `payload['${key}'] = this.form${i}.getRawValue();`;}).join('\n      ')}
+      this.submitPayload.set(payload);
+      this.isSubmitted.set(true);
+    }
+  }
+
+  reset(): void {
+    [${sections.map((_,i)=>`this.form${i}`).join(', ')}].forEach(f => f.reset());
+    this.isSubmitted.set(false);
+    ${layout==='stepper'?'this.currentStep.set(0);':layout==='tabs'?'this.currentTab.set(0);':''}
+  }
+}`;
+}
+
+function genHTML(){
+  const sections=getSections();
+  const layout=getLayout();
+  const selector=toKebab(schema.formTitle||'dynamic-form');
+  let h='';
+
+  h+=`<div class="df-host">\n\n`;
+
+  if(layout==='stepper'){
+    h+=stepperHTML(sections, selector);
+  } else if(layout==='tabs'){
+    h+=tabsHTML(sections, selector);
+  } else {
+    h+=singleHTML(sections, selector);
+  }
+
+  h+=`\n  <!-- ── Success state ──────────────────────────────────────── -->\n`;
+  h+=`  <div class="df-success" *ngIf="isSubmitted()" role="alert">\n`;
+  h+=`    <mat-icon class="df-success-icon">check_circle</mat-icon>\n`;
+  h+=`    <h2>${esc(schema.formTitle||'Form')} submitted!</h2>\n`;
+  h+=`    <pre class="df-payload">{{ submitPayload() | json }}</pre>\n`;
+  h+=`    <button mat-stroked-button (click)="reset()">\n`;
+  h+=`      <mat-icon>refresh</mat-icon> Fill again\n`;
+  h+=`    </button>\n`;
+  h+=`  </div>\n\n`;
+  h+=`</div>\n`;
+  return h;
+}
+
+function stepperHTML(sections, selector){
+  let h=`  <header class="df-header">\n`;
+  h+=`    <h1 class="df-title">${esc(schema.formTitle||'Form')}</h1>\n`;
+  if(schema.description) h+=`    <p class="df-desc">${esc(schema.description)}</p>\n`;
+  h+=`  </header>\n\n`;
+
+  h+=`  <!-- Progress bar -->\n`;
+  h+=`  <div class="df-progress">\n`;
+  h+=`    <div class="df-progress-meta">\n`;
+  h+=`      <span>Step {{ currentStep() + 1 }} of ${sections.length}</span>\n`;
+  h+=`      <span>{{ progress() }}%</span>\n`;
+  h+=`    </div>\n`;
+  h+=`    <mat-progress-bar mode="determinate" [value]="progress()"></mat-progress-bar>\n`;
+  h+=`  </div>\n\n`;
+
+  h+=`  <!-- Step indicators -->\n`;
+  h+=`  <nav class="df-step-track">\n`;
+  sections.forEach((sec,i)=>{
+    const label=esc(sec.stepTitle||sec.sectionTitle||`Step ${i+1}`);
+    h+=`    <button class="df-step-node" [class.is-done]="currentStep() > ${i}" [class.is-active]="currentStep() === ${i}" (click)="goTo(${i})">\n`;
+    h+=`      <span class="df-step-circle">\n`;
+    h+=`        <mat-icon *ngIf="currentStep() > ${i}">check</mat-icon>\n`;
+    h+=`        <span *ngIf="currentStep() <= ${i}">${i+1}</span>\n`;
+    h+=`      </span>\n`;
+    h+=`      <span class="df-step-label">${label}</span>\n`;
+    h+=`    </button>\n`;
+    if(i<sections.length-1) h+=`    <div class="df-step-line" [class.is-done]="currentStep() > ${i}"></div>\n`;
+  });
+  h+=`  </nav>\n\n`;
+
+  sections.forEach((sec,i)=>{
+    h+=`  <!-- ── Step ${i+1}: ${esc(sec.stepTitle||sec.sectionTitle||'')} ──────────────────────── -->\n`;
+    h+=`  <div class="df-step-card" *ngIf="currentStep() === ${i}">\n`;
+    if(sec.stepTitle||sec.sectionTitle) h+=`    <h2 class="df-step-title">${esc(sec.stepTitle||sec.sectionTitle||'')}</h2>\n`;
+    if(sec.stepDescription) h+=`    <p class="df-step-desc">${esc(sec.stepDescription)}</p>\n`;
+    h+=`    <form [formGroup]="form${i}" novalidate>\n`;
+    if(!sec.fields||!sec.fields.length){
+      h+=buildSummaryHTML(sections);
+    } else {
+      h+=buildFieldGridHTML(sec.fields, sec.columns||1, i);
+    }
+    h+=`      <footer class="df-foot">\n`;
+    if(i>0) h+=`        <button mat-stroked-button type="button" (click)="back()"><mat-icon>arrow_back</mat-icon> Back</button>\n`;
+    if(i<sections.length-1) h+=`        <button mat-flat-button color="primary" type="button" (click)="next()">Next <mat-icon>arrow_forward</mat-icon></button>\n`;
+    else h+=`        <button mat-flat-button color="primary" type="button" (click)="submit()"><mat-icon>check</mat-icon> Submit</button>\n`;
+    h+=`      </footer>\n`;
+    h+=`    </form>\n`;
+    h+=`  </div>\n\n`;
+  });
+  return h;
+}
+
+function tabsHTML(sections, selector){
+  let h=`  <header class="df-header">\n`;
+  h+=`    <h1 class="df-title">${esc(schema.formTitle||'Form')}</h1>\n`;
+  if(schema.description) h+=`    <p class="df-desc">${esc(schema.description)}</p>\n`;
+  h+=`  </header>\n\n`;
+
+  h+=`  <!-- Tab bar -->\n  <div class="df-tab-bar">\n`;
+  sections.forEach((sec,i)=>{
+    const label=esc(sec.stepTitle||sec.sectionTitle||`Tab ${i+1}`);
+    h+=`    <button class="df-tab-item" [class.is-active]="currentTab() === ${i}" [class.is-done]="currentTab() > ${i}" (click)="goTo(${i})">\n`;
+    h+=`      <mat-icon *ngIf="currentTab() > ${i}" style="font-size:14px">check_circle</mat-icon>\n`;
+    h+=`      ${label}\n    </button>\n`;
+  });
+  h+=`  </div>\n\n`;
+
+  sections.forEach((sec,i)=>{
+    h+=`  <!-- ── Tab ${i+1}: ${esc(sec.stepTitle||sec.sectionTitle||'')} ──────────────────────── -->\n`;
+    h+=`  <div class="df-tab-panel" *ngIf="currentTab() === ${i}">\n`;
+    h+=`    <form [formGroup]="form${i}" novalidate>\n`;
+    if(sec.stepDescription) h+=`      <p class="df-step-desc">${esc(sec.stepDescription)}</p>\n`;
+    h+=buildFieldGridHTML(sec.fields||[], sec.columns||1, i);
+    h+=`      <footer class="df-foot">\n`;
+    if(i>0) h+=`        <button mat-stroked-button type="button" (click)="back()"><mat-icon>arrow_back</mat-icon> Previous</button>\n`;
+    if(i<sections.length-1) h+=`        <button mat-flat-button color="primary" type="button" (click)="next()">Next tab <mat-icon>arrow_forward</mat-icon></button>\n`;
+    else h+=`        <button mat-flat-button color="primary" type="button" (click)="submit()"><mat-icon>check</mat-icon> Submit</button>\n`;
+    h+=`      </footer>\n`;
+    h+=`    </form>\n  </div>\n\n`;
+  });
+  return h;
+}
+
+function singleHTML(sections, selector){
+  let h=`  <header class="df-header">\n`;
+  h+=`    <h1 class="df-title">${esc(schema.formTitle||'Form')}</h1>\n`;
+  if(schema.description) h+=`    <p class="df-desc">${esc(schema.description)}</p>\n`;
+  h+=`  </header>\n\n`;
+
+  sections.forEach((sec,i)=>{
+    h+=`  <!-- ── Section: ${esc(sec.sectionTitle||sec.stepTitle||'')} ──────────────────────── -->\n`;
+    h+=`  <section class="df-section">\n`;
+    if(sec.sectionTitle||sec.stepTitle) h+=`    <h2 class="df-section-title">${esc(sec.sectionTitle||sec.stepTitle||'')}</h2>\n`;
+    h+=`    <form [formGroup]="form${i}" novalidate>\n`;
+    h+=buildFieldGridHTML(sec.fields||[], sec.columns||1, i);
+    h+=`    </form>\n  </section>\n\n`;
+  });
+
+  h+=`  <footer class="df-foot df-foot--single">\n`;
+  h+=`    <button mat-flat-button color="primary" type="button" (click)="submit()">\n`;
+  h+=`      <mat-icon>check</mat-icon> Submit form\n    </button>\n  </footer>\n\n`;
+  return h;
+}
+
+function buildFieldGridHTML(fields, cols, si){
+  const c=Math.min(Math.max(parseInt(cols)||1,1),4);
+  let h=`      <div class="df-grid df-cols-${c}">\n`;
+  fields.forEach(f=>{
+    const span=Math.min(parseInt(f.colSpan)||1,c);
+    const spanCls=span>1?` df-span-${span}`:'';
+    const visAttr=f.visibleWhen?` *ngIf="isVisible_${f.controlName}()"`:'';
+    h+=`\n        <!-- ${esc(f.label||f.controlName)} -->\n`;
+    h+=`        <div class="df-field${spanCls}"${visAttr}>\n`;
+    h+=buildFieldHTML(f, si);
+    h+=`        </div>\n`;
+  });
+  h+=`      </div>\n`;
+  return h;
+}
+
+function buildFieldHTML(f, si){
+  let h='';
+  if(f.type==='input'||f.type==='autocomplete'){
+    h+=`          <mat-form-field appearance="outline" class="df-form-field">\n`;
+    h+=`            <mat-label>${esc(f.label||f.controlName)}</mat-label>\n`;
+    h+=`            <input matInput type="${f.inputType||'text'}" placeholder="${esc(f.placeholder||'')}" formControlName="${f.controlName}"${f.type==='autocomplete'?' [matAutocomplete]="auto_'+f.controlName+'"':''}>\n`;
+    if(f.type==='autocomplete'){
+      h+=`            <mat-autocomplete #auto_${f.controlName}="matAutocomplete">\n`;
+      (f.options||[]).forEach(o=>{h+=`              <mat-option value="${esc(o)}">${esc(o)}</mat-option>\n`;});
+      h+=`            </mat-autocomplete>\n`;
+    }
+    if(f.hint) h+=`            <mat-hint>${esc(f.hint)}</mat-hint>\n`;
+    h+=`            <mat-error>{{ getErrorMessage(form${si}.get('${f.controlName}') | as: FormControl) }}</mat-error>\n`;
+    h+=`          </mat-form-field>\n`;
+  } else if(f.type==='textarea'){
+    h+=`          <mat-form-field appearance="outline" class="df-form-field">\n`;
+    h+=`            <mat-label>${esc(f.label||f.controlName)}</mat-label>\n`;
+    h+=`            <textarea matInput rows="4" placeholder="${esc(f.placeholder||'')}" formControlName="${f.controlName}"></textarea>\n`;
+    if(f.hint) h+=`            <mat-hint>${esc(f.hint)}</mat-hint>\n`;
+    h+=`            <mat-error>{{ getErrorMessage(form${si}.get('${f.controlName}') | as: FormControl) }}</mat-error>\n`;
+    h+=`          </mat-form-field>\n`;
+  } else if(f.type==='select'){
+    h+=`          <mat-form-field appearance="outline" class="df-form-field">\n`;
+    h+=`            <mat-label>${esc(f.label||f.controlName)}</mat-label>\n`;
+    h+=`            <mat-select formControlName="${f.controlName}">\n`;
+    (f.options||[]).forEach(o=>{
+      const lbl=typeof o==='string'?o:o.label;
+      const val=typeof o==='string'?o:o.value;
+      h+=`              <mat-option value="${esc(val)}">${esc(lbl)}</mat-option>\n`;
+    });
+    h+=`            </mat-select>\n`;
+    if(f.hint) h+=`            <mat-hint>${esc(f.hint)}</mat-hint>\n`;
+    h+=`            <mat-error>{{ getErrorMessage(form${si}.get('${f.controlName}') | as: FormControl) }}</mat-error>\n`;
+    h+=`          </mat-form-field>\n`;
+  } else if(f.type==='datepicker'){
+    h+=`          <mat-form-field appearance="outline" class="df-form-field">\n`;
+    h+=`            <mat-label>${esc(f.label||f.controlName)}</mat-label>\n`;
+    h+=`            <input matInput [matDatepicker]="dp_${f.controlName}" formControlName="${f.controlName}">\n`;
+    h+=`            <mat-datepicker-toggle matIconSuffix [for]="dp_${f.controlName}"></mat-datepicker-toggle>\n`;
+    h+=`            <mat-datepicker #dp_${f.controlName}></mat-datepicker>\n`;
+    if(f.hint) h+=`            <mat-hint>${esc(f.hint)}</mat-hint>\n`;
+    h+=`            <mat-error>{{ getErrorMessage(form${si}.get('${f.controlName}') | as: FormControl) }}</mat-error>\n`;
+    h+=`          </mat-form-field>\n`;
+  } else if(f.type==='radio'){
+    h+=`          <div class="df-field-block">\n`;
+    h+=`            <label class="df-field-lbl">${esc(f.label||f.controlName)}</label>\n`;
+    h+=`            <mat-radio-group formControlName="${f.controlName}" class="df-radio-group">\n`;
+    (f.options||[]).forEach(o=>{
+      const lbl=typeof o==='string'?o:o.label;
+      const val=typeof o==='string'?o:o.value;
+      h+=`              <mat-radio-button value="${esc(val)}">${esc(lbl)}</mat-radio-button>\n`;
+    });
+    h+=`            </mat-radio-group>\n`;
+    if(f.hint) h+=`            <span class="df-hint">${esc(f.hint)}</span>\n`;
+    h+=`          </div>\n`;
+  } else if(f.type==='checkbox'){
+    h+=`          <div class="df-field-block">\n`;
+    h+=`            <label class="df-field-lbl">${esc(f.label||f.controlName)}</label>\n`;
+    h+=`            <div class="df-checkbox-group" [formArrayName]="'${f.controlName}'">\n`;
+    (f.options||[]).forEach((o,j)=>{
+      const lbl=typeof o==='string'?o:o.label;
+      h+=`              <mat-checkbox [formControlName]="${j}">${esc(lbl)}</mat-checkbox>\n`;
+    });
+    h+=`            </div>\n          </div>\n`;
+  } else if(f.type==='toggle'){
+    h+=`          <div class="df-field-block df-toggle-row">\n`;
+    h+=`            <label class="df-field-lbl">${esc(f.label||f.controlName)}</label>\n`;
+    h+=`            <mat-slide-toggle formControlName="${f.controlName}"></mat-slide-toggle>\n`;
+    h+=`          </div>\n`;
+  } else if(f.type==='chips'){
+    h+=`          <div class="df-field-block">\n`;
+    h+=`            <label class="df-field-lbl">${esc(f.label||f.controlName)}</label>\n`;
+    h+=`            <mat-chip-listbox formControlName="${f.controlName}" multiple class="df-chips">\n`;
+    (f.options||[]).forEach(o=>{
+      const lbl=typeof o==='string'?o:o.label;
+      const val=typeof o==='string'?o:o.value;
+      h+=`              <mat-chip-option value="${esc(val)}">${esc(lbl)}</mat-chip-option>\n`;
+    });
+    h+=`            </mat-chip-listbox>\n          </div>\n`;
+  } else if(f.type==='file'){
+    h+=`          <div class="df-field-block">\n`;
+    h+=`            <label class="df-field-lbl">${esc(f.label||f.controlName)}</label>\n`;
+    h+=`            <div class="df-file-zone" (click)="fileInput_${f.controlName}.click()">\n`;
+    h+=`              <mat-icon>cloud_upload</mat-icon>\n`;
+    h+=`              <p>Click to upload or drag & drop</p>\n`;
+    h+=`              <input #fileInput_${f.controlName} type="file" style="display:none" formControlName="${f.controlName}">\n`;
+    h+=`            </div>\n`;
+    if(f.hint) h+=`            <span class="df-hint">${esc(f.hint)}</span>\n`;
+    h+=`          </div>\n`;
+  }
+  return h;
+}
+
+function buildSummaryHTML(sections){
+  let h=`      <!-- Review summary -->\n      <div class="df-review">\n`;
+  sections.forEach((s,si)=>{
+    if(!s.fields||!s.fields.length) return;
+    h+=`        <div class="df-review-section">\n`;
+    h+=`          <h3 class="df-review-sec-title">${esc(s.stepTitle||s.sectionTitle||`Step ${si+1}`)}</h3>\n`;
+    (s.fields||[]).forEach(f=>{
+      h+=`          <div class="df-review-row">\n`;
+      h+=`            <span class="df-review-key">${esc(f.label||f.controlName)}</span>\n`;
+      h+=`            <span class="df-review-val">{{ getSummaryValue(${si}, '${f.controlName}') }}</span>\n`;
+      h+=`          </div>\n`;
+    });
+    h+=`        </div>\n`;
+  });
+  h+=`      </div>\n`;
+  return h;
+}
+
+function genSCSS(){
+  const layout=getLayout();
+  const sections=getSections();
+  const allFields=sections.flatMap(s=>s.fields||[]);
+  const maxCols=Math.max(...sections.map(s=>s.columns||1));
+
+  let s=`:host {
+  --acc:        #534AB7;
+  --acc-light:  #EEEDFE;
+  --acc-mid:    #7F77DD;
+  --acc-dark:   #3C3489;
+  --suc:        #1D9E75;
+  --suc-light:  #E1F5EE;
+  --suc-dark:   #085041;
+  --border:     rgba(0, 0, 0, 0.1);
+  --text-muted: rgba(0, 0, 0, 0.5);
+  --radius:     12px;
+  --radius-sm:  8px;
+
+  display: block;
+  font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+}
+
+.df-host {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 32px 20px 48px;
+}
+
+// ── Header
+.df-header { margin-bottom: 24px; }
+.df-title { font-size: 24px; font-weight: 600; letter-spacing: -0.3px; margin: 0 0 6px; }
+.df-desc  { font-size: 14px; color: var(--text-muted); margin: 0; line-height: 1.6; }
+
+`;
+
+  if(layout==='stepper'){
+    s+=`// ── Progress
+.df-progress {
+  margin-bottom: 20px;
+  &-meta { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-muted); margin-bottom: 6px; }
+}
+::ng-deep .mat-mdc-progress-bar .mdc-linear-progress__bar-inner { border-color: var(--acc); }
+::ng-deep .mat-mdc-progress-bar .mdc-linear-progress__buffer-bar { background: var(--acc-light); }
+
+// ── Step track
+.df-step-track {
+  display: flex; align-items: center; margin-bottom: 20px;
+  overflow-x: auto; padding-bottom: 4px; gap: 0;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+.df-step-node {
+  display: flex; align-items: center; gap: 8px;
+  background: none; border: none; padding: 0; cursor: pointer; flex-shrink: 0; outline: none;
+  &:focus-visible .df-step-circle { box-shadow: 0 0 0 3px var(--acc-light); }
+}
+.df-step-circle {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600; border: 1.5px solid var(--border);
+  background: #fff; color: var(--text-muted); transition: all 0.2s; flex-shrink: 0;
+  mat-icon { font-size: 14px !important; width: 14px; height: 14px; }
+}
+.df-step-node.is-active .df-step-circle { background: var(--acc); border-color: var(--acc); color: #fff; }
+.df-step-node.is-done   .df-step-circle { background: var(--suc-light); border-color: var(--suc); color: var(--suc-dark); }
+.df-step-label { font-size: 12px; font-weight: 500; color: var(--text-muted); white-space: nowrap; }
+.df-step-node.is-active .df-step-label { color: var(--acc-dark); }
+.df-step-node.is-done   .df-step-label { color: var(--suc-dark); }
+.df-step-line { flex: 1; height: 1.5px; min-width: 16px; background: var(--border); transition: background 0.2s; &.is-done { background: var(--suc); } }
+
+// ── Step card
+.df-step-card {
+  background: #fff; border: 0.5px solid var(--border);
+  border-radius: var(--radius); padding: 24px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05), 0 4px 16px rgba(83,74,183,.06);
+}
+.df-step-title { font-size: 16px; font-weight: 600; margin: 0 0 4px; }
+.df-step-desc  { font-size: 13px; color: var(--text-muted); margin: 0 0 16px; }
+
+`;
+  }
+
+  if(layout==='tabs'){
+    s+=`// ── Tab bar
+.df-tab-bar {
+  display: flex; border-bottom: 1.5px solid var(--border);
+  margin-bottom: 20px; overflow-x: auto; scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+.df-tab-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 18px; font-size: 13px; font-weight: 500;
+  color: var(--text-muted); cursor: pointer;
+  border: none; background: none; border-bottom: 2px solid transparent;
+  margin-bottom: -1.5px; white-space: nowrap; transition: all 0.15s;
+  &:hover { color: #1a1a2e; }
+  &.is-active { color: var(--acc); border-bottom-color: var(--acc); }
+  &.is-done   { color: var(--suc); }
+  mat-icon { font-size: 14px !important; }
+}
+.df-tab-panel {
+  background: #fff; border: 0.5px solid var(--border);
+  border-radius: var(--radius); padding: 24px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+}
+.df-step-desc { font-size: 13px; color: var(--text-muted); margin: 0 0 16px; }
+
+`;
+  }
+
+  if(layout==='single'){
+    s+=`// ── Sections
+.df-section { margin-bottom: 32px; }
+.df-section-title {
+  font-size: 13px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--acc); margin: 0 0 16px;
+  padding-bottom: 8px; border-bottom: 1.5px solid var(--acc-light);
+}
+.df-foot--single { border-top: 1.5px solid var(--border); padding-top: 20px; }
+
+`;
+  }
+
+  s+=`// ── Grid system
+.df-grid { display: grid; gap: 16px; align-items: start; }
+.df-cols-1 { grid-template-columns: 1fr; }
+.df-cols-2 { grid-template-columns: repeat(2, 1fr); }
+.df-cols-3 { grid-template-columns: repeat(3, 1fr); }
+.df-cols-4 { grid-template-columns: repeat(4, 1fr); }
+.df-span-2 { grid-column: span 2; }
+.df-span-3 { grid-column: span 3; }
+.df-span-4 { grid-column: span 4; }
+
+// ── Material form field
+.df-form-field { width: 100%; }
+
+::ng-deep {
+  .df-form-field .mdc-notched-outline__leading,
+  .df-form-field .mdc-notched-outline__notch,
+  .df-form-field .mdc-notched-outline__trailing {
+    border-color: rgba(0,0,0,.16) !important;
+    border-radius: 10px !important;
+  }
+  .df-form-field.mat-focused .mdc-notched-outline__leading,
+  .df-form-field.mat-focused .mdc-notched-outline__notch,
+  .df-form-field.mat-focused .mdc-notched-outline__trailing {
+    border-color: var(--acc) !important;
+    border-width: 1.5px !important;
+  }
+  .df-form-field.mat-focused .mdc-floating-label { color: var(--acc) !important; }
+  .mat-mdc-flat-button[color="primary"] { background: var(--acc) !important; border-radius: 10px; }
+  .mat-mdc-outlined-button { border-radius: 10px; }
+  .mat-mdc-slide-toggle.mat-accent .mdc-switch:enabled .mdc-switch__track::after { background: var(--acc) !important; }
+  .df-chips .mat-mdc-chip-option.mdc-evolution-chip--selected { background: var(--acc-light) !important; color: var(--acc-dark) !important; }
+  .mat-mdc-radio-button.mat-accent .mdc-radio__outer-circle { border-color: var(--acc); }
+  .mat-mdc-radio-button.mat-accent .mdc-radio__inner-circle { background: var(--acc); }
+  .mat-mdc-checkbox.mat-accent.mat-mdc-checkbox-checked .mdc-checkbox__background { background: var(--acc); border-color: var(--acc); }
+}
+
+// ── Field blocks (non-material)
+.df-field-block { display: flex; flex-direction: column; gap: 8px; }
+.df-field-lbl   { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.df-hint        { font-size: 11px; color: var(--text-muted); }
+.df-radio-group    { display: flex; flex-direction: column; gap: 6px; }
+.df-checkbox-group { display: flex; flex-direction: column; gap: 6px; }
+.df-toggle-row     { flex-direction: row; align-items: center; justify-content: space-between; }
+.df-chips          { display: flex; flex-wrap: wrap; gap: 6px; }
+
+// ── File upload
+.df-file-zone {
+  border: 1.5px dashed rgba(0,0,0,.18); border-radius: 10px;
+  padding: 20px; text-align: center; cursor: pointer;
+  background: #FAFAFA; transition: all 0.15s;
+  mat-icon { font-size: 28px; color: var(--text-muted); }
+  p { font-size: 12px; color: var(--text-muted); margin: 6px 0 0; }
+  &:hover { border-color: var(--acc-mid); background: var(--acc-light); }
+}
+
+// ── Footer
+.df-foot {
+  display: flex; gap: 10px; justify-content: flex-end;
+  margin-top: 24px; padding-top: 16px; border-top: 0.5px solid var(--border);
+}
+
+// ── Review
+.df-review { }
+.df-review-section { margin-bottom: 20px; }
+.df-review-sec-title {
+  font-size: 12px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--acc); margin: 0 0 10px;
+  padding-bottom: 6px; border-bottom: 0.5px solid var(--acc-light);
+}
+.df-review-row {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 7px 0; border-bottom: 0.5px solid rgba(0,0,0,.06);
+  font-size: 13px; gap: 16px;
+}
+.df-review-key { color: var(--text-muted); flex: 0 0 42%; }
+.df-review-val { font-weight: 500; text-align: right; word-break: break-word; flex: 1; }
+
+// ── Success
+.df-success {
+  background: var(--suc-light); border: 0.5px solid #5DCAA5;
+  border-radius: var(--radius); padding: 32px 24px; text-align: center;
+  .df-success-icon { font-size: 46px !important; color: var(--suc); margin-bottom: 10px; }
+  h2 { font-size: 17px; font-weight: 600; color: var(--suc-dark); margin: 0 0 16px; }
+  .df-payload {
+    text-align: left; background: rgba(255,255,255,.65); border-radius: 10px;
+    padding: 14px; font-size: 11px; line-height: 1.7;
+    overflow: auto; max-height: 240px; margin-bottom: 16px;
+  }
+}
+
+// ── Responsive
+@media (max-width: 680px) {
+  .df-host { padding: 16px 12px 32px; }
+  .df-cols-2, .df-cols-3, .df-cols-4 { grid-template-columns: 1fr !important; }
+  .df-span-2, .df-span-3, .df-span-4 { grid-column: 1 !important; }
+  .df-step-label { display: none; }
+  .df-foot { flex-direction: column; button { width: 100%; } }
+}
+`;
+  return s;
+}
+
+function buildValidatorStr(validators){
+  return validators.map(v=>{
+    if(v.type==='required') return 'Validators.required';
+    if(v.type==='email') return 'Validators.email';
+    if(v.type==='minLength') return `Validators.minLength(${v.value||1})`;
+    if(v.type==='maxLength') return `Validators.maxLength(${v.value||255})`;
+    if(v.type==='min') return `Validators.min(${v.value||0})`;
+    if(v.type==='max') return `Validators.max(${v.value||9999})`;
+    if(v.type==='pattern') return `Validators.pattern('${v.value}')`;
+    return null;
+  }).filter(Boolean).join(', ');
+}
+
+function toPascal(s){ return s.replace(/(?:^|\s|\-|_|[^a-zA-Z0-9])(\w)/g,(_,c)=>c.toUpperCase()).replace(/[^a-zA-Z0-9]/g,''); }
+function toKebab(s){ return s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
+function toCamel(s){ const p=toPascal(s); return p.charAt(0).toLowerCase()+p.slice(1); }
+</script>
